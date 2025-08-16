@@ -1,0 +1,26 @@
+name: Update top5 Wild Rift stats
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm install playwright
+      - run: npx playwright install --with-deps
+      - run: node build_top5.mjs
+      - name: Commit and push
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Actions"
+          git add top5.json
+          timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          git commit -m "Update top5.json ($timestamp)" || echo "No changes"
+          git push
