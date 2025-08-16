@@ -1,0 +1,39 @@
+{
+  "roles": {
+    "baron": [
+      { "name": "Kayle", "winrate": 0.5490, "pickrate": 0.1075, "banrate": 0.1711 },
+      { "name": "Teemo", "winrate": 0.5284, "pickrate": 0.0569, "banrate": 0.2120 },
+      { "name": "Tristana", "winrate": 0.5265, "pickrate": 0.0105, "banrate": 0.0020 },
+      { "name": "Kennen", "winrate": 0.5228, "pickrate": 0.0148, "banrate": 0.0043 },
+      { "name": "Rumble", "winrate": 0.5220, "pickrate": 0.0464, "banrate": 0.0229 }
+    ],
+    "jungle": [
+      { "name": "Rammus", "winrate": 0.5666, "pickrate": 0.0908, "banrate": 0.3382 },
+      { "name": "Amumu", "winrate": 0.5434, "pickrate": 0.0431, "banrate": 0.0045 },
+      { "name": "Morgana", "winrate": 0.5286, "pickrate": 0.0170, "banrate": 0.3006 },
+      { "name": "Yone", "winrate": 0.5246, "pickrate": 0.0263, "banrate": 0.2144 },
+      { "name": "Fiddlesticks", "winrate": 0.5232, "pickrate": 0.0305, "banrate": 0.0120 }
+    ],
+    "mid": [
+      { "name": "Kayle", "winrate": 0.5377, "pickrate": 0.0253, "banrate": 0.1711 },
+      { "name": "Morgana", "winrate": 0.5353, "pickrate": 0.0728, "banrate": 0.3006 },
+      { "name": "Kennen", "winrate": 0.5281, "pickrate": 0.0150, "banrate": 0.0043 },
+      { "name": "Teemo", "winrate": 0.5271, "pickrate": 0.0262, "banrate": 0.2120 },
+      { "name": "Zyra", "winrate": 0.5226, "pickrate": 0.0336, "banrate": 0.4453 }
+    ],
+    "dragon": [
+      { "name": "Varus", "winrate": 0.5454, "pickrate": 0.2298, "banrate": 0.1383 },
+      { "name": "Ashe", "winrate": 0.5277, "pickrate": 0.0787, "banrate": 0.0020 },
+      { "name": "Miss Fortune", "winrate": 0.5131, "pickrate": 0.2157, "banrate": 0.0449 },
+      { "name": "Jhin", "winrate": 0.5056, "pickrate": 0.1040, "banrate": 0.0029 },
+      { "name": "Caitlyn", "winrate": 0.5045, "pickrate": 0.2510, "banrate": 0.0317 }
+    ],
+    "support": [
+      { "name": "Zilean", "winrate": 0.5434, "pickrate": 0.0385, "banrate": 0.4261 },
+      { "name": "Blitzcrank", "winrate": 0.5304, "pickrate": 0.1181, "banrate": 0.0635 },
+      { "name": "Karma", "winrate": 0.5222, "pickrate": 0.0639, "banrate": 0.0068 },
+      { "name": "Janna", "winrate": 0.5176, "pickrate": 0.0201, "banrate": 0.0016 },
+      { "name": "Sona", "winrate": 0.5151, "pickrate": 0.0321, "banrate": 0.0014 }
+    ]
+  }
+}

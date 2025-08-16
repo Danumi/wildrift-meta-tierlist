@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wild Rift Global Top 5 Meta Tierlist</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen font-sans">
+  <header class="bg-gray-800 p-6 text-center shadow-md">
+    <h1 class="text-3xl font-bold">Wild Rift Meta Tierlist</h1>
+    <p class="text-sm text-gray-400">Top 5 champions by win rate for each role (Diamond+ worldwide)</p>
+  </header>
+  <main id="content" class="p-6 space-y-8"></main>
+  <footer class="bg-gray-800 p-4 text-center text-xs text-gray-400">
+    Data sourced from Riot/Tencent's official CN Diamond+ stats【813732088290812†screenshot】. Updated as of 16 Aug 2025.
+  </footer>
+  <script>
+    /**
+     * Fetches the JSON data containing top 5 champion stats per role and renders tables.
+     */
+    async function loadTierData() {
+      const content = document.getElementById('content');
+      content.textContent = 'Loading tier data...';
+      try {
+        const response = await fetch('./top5.json');
+        if (!response.ok) throw new Error('Failed to load data');
+        const data = await response.json();
+        content.textContent = '';
+        const roles = {
+          baron: 'Baron Lane',
+          jungle: 'Jungle',
+          mid: 'Mid Lane',
+          dragon: 'Dragon Lane',
+          support: 'Support'
+        };
+        Object.entries(roles).forEach(([key, title]) => {
+          const section = document.createElement('section');
+          section.className = 'bg-gray-800 rounded-lg shadow-md overflow-hidden';
+          const header = document.createElement('div');
+          header.className = 'bg-gray-700 px-4 py-2';
+          header.innerHTML = `<h2 class="text-xl font-semibold">${title}</h2>`;
+          section.appendChild(header);
+          const table = document.createElement('table');
+          table.className = 'min-w-full text-left';
+          const thead = document.createElement('thead');
+          thead.innerHTML = `<tr class="bg-gray-700 text-gray-300 uppercase text-sm">
+              <th class="px-4 py-2">#</th>
+              <th class="px-4 py-2">Champion</th>
+              <th class="px-4 py-2">Win Rate</th>
+              <th class="px-4 py-2">Pick Rate</th>
+              <th class="px-4 py-2">Ban Rate</th>
+            </tr>`;
+          table.appendChild(thead);
+          const tbody = document.createElement('tbody');
+          (data.roles[key] || []).forEach((champ, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700';
+            tr.innerHTML = `
+              <td class="px-4 py-2 font-bold">${idx + 1}</td>
+              <td class="px-4 py-2">${champ.name}</td>
+              <td class="px-4 py-2">${(champ.winrate * 100).toFixed(2)}%</td>
+              <td class="px-4 py-2">${(champ.pickrate * 100).toFixed(2)}%</td>
+              <td class="px-4 py-2">${(champ.banrate * 100).toFixed(2)}%</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          section.appendChild(table);
+          content.appendChild(section);
+        });
+      } catch (err) {
+        content.textContent = 'Error loading data: ' + err.message;
+      }
+    }
+    loadTierData();
+  </script>
+</body>
+</html>
