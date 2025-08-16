@@ -388,8 +388,8 @@ jobs:
   }
   function portraitUrl(name){
     const key = ICON_KEY[name] || name.replace(/[^A-Za-z]/g, '');
+    // Prefer splash art; if splash fails, we'll still show the square icon in the foreground.
     return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${key}_0.jpg`;
-  }.png`;
   }
 
   function fmtPct(n) { return (Number(n).toFixed(2) + '%'); }
@@ -492,33 +492,6 @@ jobs:
       const ban = Number(row.banrate||0);
       const card = document.createElement('article');
       card.className = 'card' + (viewMode==='compact' ? ' compact' : '');
-      card.innerHTML = `
-        <div class="rank ${idx===0?'crown':''}">#${idx+1}</div>
-        <figure class="art">
-          <img class="bg" alt="${row.champion} splash" loading="lazy" src="${portraitUrl(row.champion)}" onerror="this.style.display='none'">
-          <img class="fg" alt="${row.champion} icon" loading="lazy" src="${iconUrl(row.champion)}" onerror="this.remove()">
-        </figure>
-        <div class="champ">
-          <div>
-            <div class="name">${row.champion}</div>
-            <span class="tag">${ROLE_LABELS[currentRole]}</span>
-          </div>
-        </div>
-        <div class="metrics">
-          <div class="metricrow"><span class="label">Win rate</span><span class="badge ${win>=50?'good':'bad'}">${fmtPct(win)}</span><div class="progress" aria-label="Win rate bar"><i style="transform:scaleX(${Math.max(0,Math.min(100,win))/100})"></i></div></div>
-          <div class="metricrow"><span class="label">Pick rate</span><span class="badge">${fmtPct(pick)}</span><div class="progress" aria-label="Pick rate bar"><i style="transform:scaleX(${Math.max(0,Math.min(100,pick))/100})"></i></div></div>
-          <div class="metricrow"><span class="label">Ban rate</span><span class="badge">${fmtPct(ban)}</span><div class="progress" aria-label="Ban rate bar"><i style="transform:scaleX(${Math.max(0,Math.min(100,ban))/100})"></i></div></div>
-        </div>`;
-      gridEl.appendChild(card);
-    });
-  }
-
-    rows.forEach((row, idx) => {
-      const win = Number(row.winrate||0);
-      const pick = Number(row.pickrate||0);
-      const ban = Number(row.banrate||0);
-      const card = document.createElement('article');
-      card.className = 'card';
       card.innerHTML = `
         <div class="rank ${idx===0?'crown':''}">#${idx+1}</div>
         <figure class="art">
