@@ -1,7 +1,7 @@
 {
   "roles": {
     "baron": [
-      { "name": "Kayle", "winrate": 0.5490, "pickrate": 0.1075, "banrate": 0.1711 },
+      { "name": "Katarina", "winrate": 0.99, "pickrate": 0.1075, "banrate": 0.1711 },
       { "name": "Teemo", "winrate": 0.5284, "pickrate": 0.0569, "banrate": 0.2120 },
       { "name": "Tristana", "winrate": 0.5265, "pickrate": 0.0105, "banrate": 0.0020 },
       { "name": "Kennen", "winrate": 0.5228, "pickrate": 0.0148, "banrate": 0.0043 },
