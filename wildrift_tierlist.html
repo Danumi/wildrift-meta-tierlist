@@ -1,607 +1,80 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wild Rift Meta Tierlist — Daily Top 5 per Role</title>
-  <meta name="description" content="Single‑file web app that shows the top 5 Wild Rift champions per role by daily winrate. Plug it into a daily JSON feed and you're live." />
-  <style>
-    :root {
-      --bg: #0b0f14;
-      --panel: #121820;
-      --muted: #8aa0b2;
-      --text: #e7edf3;
-      --accent: #46c2ff;
-      --good: #4cd97b;
-      --bad: #ff6b6b;
-      --ring: #233040;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color: var(--text);
-      background: radial-gradient(1200px 700px at 20% -10%, rgba(70,194,255,.08), transparent 50%),
-                  radial-gradient(700px 700px at 100% 0%, rgba(110,77,255,.06), transparent 50%),
-                  var(--bg);
-    }
-    header {
-      display: flex; align-items: center; gap: 14px; padding: 18px 18px 8px; flex-wrap: wrap;
-    }
-    .logo { font-weight: 800; letter-spacing: .3px; font-size: 1.2rem; display: flex; align-items: center; gap: .6rem; }
-    .logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(70,194,255,.15); }
-    .subtle { color: var(--muted); font-size: .92rem; }
-    .pill { border: 1px solid var(--ring); color: var(--muted); background: #0e141b; border-radius: 999px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 8px; }
-    .pill .led { width: 8px; height: 8px; border-radius: 999px; background: #eab308; box-shadow: 0 0 0 3px rgba(234,179,8,.15); }
-    .pill.ok .led { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
-
-    .panel { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)); border: 1px solid var(--ring); border-radius: 16px; padding: 14px; }
-
-    .controls { padding: 0 18px 4px; display: grid; gap: 10px; grid-template-columns: 1fr auto; align-items: center; }
-    .controls .row { display: flex; gap: 10px; flex-wrap: wrap; }
-    input[type="url"] { width: 100%; background: #0f1620; color: var(--text); border: 1px solid var(--ring); border-radius: 10px; padding: 10px 12px; outline: none; }
-    input[type="url"]::placeholder { color: #6e8398; }
-    button { background: linear-gradient(180deg, #1d2836, #17212c); color: var(--text); border: 1px solid var(--ring); padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 650; }
-    button:hover { filter: brightness(1.05); }
-
-    .tabs { padding: 10px 18px 0; display: flex; gap: 8px; flex-wrap: wrap; }
-    .tab { border: 1px solid var(--ring); background: #0e141b; color: var(--muted); padding: 8px 12px; border-radius: 999px; cursor: pointer; user-select: none; }
-    .tab.active { background: #152130; color: var(--text); border-color: #2b3a4c; box-shadow: 0 0 0 3px rgba(70,194,255,.12) inset; }
-
-    .grid { padding: 12px 18px 24px; display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 12px; }
-    @media (min-width: 650px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (min-width: 980px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (min-width: 1280px) { .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-
-    .card { position: relative; overflow: hidden; border-radius: 16px; border: 1px solid var(--ring); background: radial-gradient(600px 260px at 20% -10%, rgba(70,194,255,.06), transparent 50%), #0e141b; }
-    .rank { position: absolute; top: 10px; left: 10px; font-weight: 800; font-size: .95rem; background: rgba(255,255,255,.06); border: 1px solid var(--ring); padding: 6px 8px; border-radius: 10px; }
-    .champ { display: flex; gap: 12px; padding: 14px; align-items: center; }
-    .icon { width: 64px; height: 64px; border-radius: 12px; border: 1px solid var(--ring); background: #0d1218; overflow: hidden; display: grid; place-items: center; }
-    .icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .name { font-weight: 800; letter-spacing: .2px; font-size: 1.05rem; }
-    .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 14px 14px; }
-    .metric { background: #0f1620; border: 1px solid var(--ring); border-radius: 12px; padding: 10px; text-align: center; }
-    .metric .label { color: var(--muted); font-size: .8rem; }
-    .metric .value { font-weight: 800; font-feature-settings: "tnum" 1, "lnum" 1; display: block; margin-top: 4px; }
-    .metric .value.good { color: var(--good); }
-    .metric .value.bad { color: var(--bad); }
-
-    footer { padding: 18px; color: var(--muted); }
-    details { margin-top: 10px; }
-    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: .9rem; }
-    pre { background: #0e141b; border: 1px solid var(--ring); border-radius: 12px; padding: 12px; overflow: auto; }
-    .link { color: var(--accent); text-decoration: none; }
-      /* --- NEW: richer, dynamic UI --- */
-    .rolebar { padding: 8px 18px; display:flex; gap:10px; align-items:center; }
-    .rolebar .hint { color: var(--muted); font-size:.85rem; margin-left:auto; }
-
-    .card { position: relative; overflow: hidden; border-radius: 18px; border: 1px solid var(--ring); background: #0e141b; transition: transform .25s ease, box-shadow .25s ease; }
-    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-    .rank { position: absolute; top: 10px; left: 10px; font-weight: 800; font-size: .95rem; background: rgba(255,255,255,.08); border: 1px solid var(--ring); padding: 6px 10px; border-radius: 999px; backdrop-filter: blur(4px); }
-    .rank.crown::before { content: '👑 '; }
-
-    .art { position: relative; height: 160px; overflow: hidden; border-bottom: 1px solid var(--ring); }
-    .art .bg { position:absolute; inset:0; width:100%; height:100%; object-fit: cover; filter: saturate(1.05); transform: scale(1.05); }
-    .art::after { content:''; position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,.1), rgba(0,0,0,.45) 70%, rgba(0,0,0,.65)); }
-    .art .fg { position:absolute; bottom:10px; left:10px; width:56px; height:56px; border-radius:12px; border:1px solid var(--ring); box-shadow: 0 4px 18px rgba(0,0,0,.35); background:#0d1218; object-fit:cover; }
-
-    .champ { display:flex; gap:12px; padding: 12px 14px 8px; align-items: center; }
-    .champ .name { font-weight: 800; letter-spacing: .2px; font-size: 1.05rem; }
-    .tag { display:inline-block; padding:4px 8px; border-radius:999px; background:#0f1620; border:1px solid var(--ring); color:var(--muted); font-size:.78rem; }
-
-    .metrics { display:grid; grid-template-columns: 1fr; gap:8px; padding: 6px 14px 14px; }
-    .metricrow { display:flex; align-items:center; gap:10px; }
-    .metricrow .label { min-width:80px; color:var(--muted); font-size:.85rem; }
-    .badge { font-weight:800; padding:4px 8px; border-radius:8px; border:1px solid var(--ring); }
-    .badge.good { color: var(--good); background: rgba(76,217,123,.08); }
-    .badge.bad { color: var(--bad); background: rgba(255,107,107,.08); }
-    .progress { position:relative; height:8px; flex:1; border-radius:999px; background:#0f1620; border:1px solid var(--ring); overflow:hidden; }
-    .progress > i { position:absolute; inset:0; transform-origin:left; background: linear-gradient(90deg, var(--accent), #8bd8ff); }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wild Rift Global Top 5 Meta Tierlist</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <header>
-    <div class="logo"><span class="dot"></span> WR Meta Tierlist <span class="subtle">• Daily Top 5 per Role</span></div>
-    <span id="data-mode" class="pill" title="Shows whether we're using a live feed or the built‑in demo dataset."><span class="led"></span><span>Mode: <strong id="mode-label">demo</strong></span></span>
-    <span id="last-updated" class="pill" title="Timestamp from the data file (UTC)."><span class="led"></span><span>Updated: <strong id="updated-label">—</strong></span></span>
+<body class="bg-gray-900 text-gray-200 min-h-screen font-sans">
+  <header class="bg-gray-800 p-6 text-center shadow-md">
+    <h1 class="text-3xl font-bold">Wild Rift Meta Tierlist</h1>
+    <p class="text-sm text-gray-400">Top 5 champions by win rate for each role (Diamond+ worldwide)</p>
   </header>
-
-  <section class="controls">
-    <div class="row">
-      <div class="panel" style="flex:1; min-width: 260px;">
-        <div class="subtle" style="margin-bottom:6px;">Data URL (JSON) — leave empty to use built‑in data</div>
-        <input id="data-url" type="url" placeholder="e.g. https://your-worker.example.com/wr/top5.json" autocomplete="url" />
-      </div>
-      <button id="btn-load" class="panel" style="white-space: nowrap;">Load / Refresh</button>
-      <label class="panel" style="white-space: nowrap; cursor:pointer;">
-        <input id="file-input" type="file" accept="application/json" hidden />
-        Load JSON file
-      </label>
-    </div>
-  </section>
-
-  <nav class="tabs" id="tabs"></nav>
-  <div class="rolebar"><span class="subtle">Top 5 by win rate</span><span class="hint">Hover cards for details</span></div>
-  <main class="grid" id="grid" aria-live="polite"></main>
-
-  <footer>
-    <div>Source: configurable. Demo data below is static. Hook up a daily JSON feed for live stats. See <em>“How to power this with daily real data”</em> for a drop‑in backend.</div>
-    <details>
-      <summary><strong>How to power this with daily real data (drop‑in backend)</strong></summary>
-      <p>
-        <strong>TL;DR:</strong> Set up a tiny scheduled backend that fetches the official CN Diamond+ role stats and emits a normalized JSON. Point the "Data URL" above to that JSON.
-      </p>
-      <ol>
-        <li>
-          <strong>Cloudflare Worker (serverless, free tier)</strong>
-          <ul>
-            <li>Create a Worker with a <code>CRON</code> trigger (e.g., daily at 08:00 UTC).</li>
-            <li>On each run, fetch the official CN per‑role stats endpoints (documented by the community) and compute the top 5 by win rate for each role.</li>
-            <li>Store the JSON in KV/R2 and serve it at <code>/wr/top5.json</code> with CORS enabled.</li>
-          </ul>
-        </li>
-        <li>
-          <strong>Alternative (no known JSON endpoints?): GitHub Actions + Playwright</strong>
-          <ul>
-            <li>Use a daily workflow to render the official CN stats page, scrape the table for each role, and write <code>top5.json</code> to a <em>public</em> branch (e.g., on GitHub Pages). This avoids CORS headaches—pages.github.io allows cross‑origin fetch of static JSON.</li>
-          </ul>
-        </li>
-      </ol>
-      <p>Expected JSON shape (what this page consumes):</p>
-      <pre>{
-  "last_updated": "2025-08-16T08:00:00Z",
-  "source": "tencent_cn_diamond_plus",
-  "roles": {
-    "baron": [ {"champion":"Fiora","winrate":55.4,"pickrate":11.7,"banrate":12.1}, ... 5 ],
-    "jungle": [ ... 5 ],
-    "mid": [ ... 5 ],
-    "dragon": [ ... 5 ],
-    "support": [ ... 5 ]
-  }
-}</pre>
-      <p>Minimal Cloudflare Worker (TypeScript) you can paste and deploy:</p>
-      <pre>// wr-meta-worker.ts — fetches official CN stats and normalizes to top5.json
-// 1) Fill in the per-lane endpoints below (community-documented Tencent endpoints).
-// 2) Bind a KV namespace named META (Workers &gt; Settings &gt; Variables &gt; KV).
-// 3) Add a Cron trigger: 0 8 * * * (daily 08:00 UTC).
-
-export interface RoleRow { champion: string; winrate: number; pickrate?: number; banrate?: number }
-
-const ENDPOINTS: Record<string, string> = {
-  // TODO: replace with the real endpoints (see README).
-  // Example pattern (placeholder):
-  // baron:   'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=top',
-  // jungle:  'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=jungle',
-  // mid:     'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=mid',
-  // dragon:  'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=dragon',
-  // support: 'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=support',
-};
-
-async function fetchRole(url: string): Promise<RoleRow[]> {
-  const r = await fetch(url, { headers: { 'User-Agent': 'wr-meta-bot/1.0' }});
-  if (!r.ok) throw new Error(`fetch failed ${r.status}`);
-  const text = await r.text();
-  // Many Tencent pages respond with JSON; if HTML, parse for embedded JSON.
-  try { return transformFromApi(JSON.parse(text)); } catch {
-    return transformFromHtml(text);
-  }
-}
-
-function transformFromApi(data: any): RoleRow[] {
-  // Normalize from {list:[{heroName, winRate, pickRate, banRate, ...}, ...]}
-  const list = data.list || data.data || data.rows || [];
-  return list.map((x: any) => ({
-    champion: (x.heroName || x.name || x.hero || '').trim(),
-    winrate: Number(x.winRate ?? x.winrate ?? x.win_rate),
-    pickrate: Number(x.pickRate ?? x.pickrate ?? x.pick_rate ?? 0),
-    banrate: Number(x.banRate ?? x.banrate ?? x.ban_rate ?? 0),
-  })).filter(x => x.champion && Number.isFinite(x.winrate));
-}
-
-function transformFromHtml(html: string): RoleRow[] {
-  // very lightweight extraction: find JSON blob in the page
-  const m = html.match(/(\{\s*\"list\"\s*:\s*\[.*?\])/s);
-  if (m) {
-    try { return transformFromApi(JSON.parse(m[1] + '}')); } catch {}
-  }
-  // Fallback: scrape table rows (depends on current DOM)
-  const rows: RoleRow[] = [];
-  const rowRe = /<tr[^>]*>\s*<td[^>]*>(\d+)<\/td>\s*<td[^>]*>(.*?)<\/td>\s*<td[^>]*>(\d+(?:\.\d+)?)%<\/td>\s*<td[^>]*>(\d+(?:\.\d+)?)%<\/td>\s*<td[^>]*>(\d+(?:\.\d+)?)%<\/td>/g;
-  let m2;
-  while ((m2 = rowRe.exec(html))) {
-    rows.push({ champion: m2[2].replace(/<[^>]+>/g,'').trim(), winrate: Number(m2[3]), pickrate: Number(m2[4]), banrate: Number(m2[5]) });
-  }
-  return rows;
-}
-
-export default {
-  async scheduled(event: ScheduledEvent, env: any, ctx: ExecutionContext) {
-    const roles = Object.keys(ENDPOINTS);
-    const out: Record<string, RoleRow[]> = {};
-    for (const role of roles) {
-      const rows = (await fetchRole(ENDPOINTS[role]))
-        .sort((a,b) => b.winrate - a.winrate)
-        .slice(0,5);
-      out[role] = rows;
-    }
-    const payload = JSON.stringify({ last_updated: new Date().toISOString(), source: 'tencent_cn_diamond_plus', roles: out });
-    await env.META.put('top5.json', payload, { metadata: { contentType: 'application/json' }});
-  },
-  async fetch(req: Request, env: any) {
-    // Serve the latest JSON with CORS.
-    const json = await env.META.get('top5.json');
-    return new Response(json ?? '{}', { headers: { 'content-type':'application/json', 'access-control-allow-origin': '*' }});
-  }
-} as ExportedHandler;
-</pre>
-      <p>
-        Once deployed, paste the Worker URL (e.g., <code>https://your-worker.workers.dev</code>) into the <em>Data URL</em> box above and hit <em>Load</em>.
-      </p>
-    </details>
-  <details>
-    <summary><strong>Make it fully functional: copy‑paste daily scraper (GitHub Actions)</strong></summary>
-    <p>This adds a daily job that saves <code>top5.json</code> next to this HTML so the app runs in live mode by default.</p>
-    <ol>
-      <li>Create a new file <code>build_top5.mjs</code> at the repo root with this content:</li>
-    </ol>
-    <pre>import { chromium } from 'playwright'
-
-const PAGE = 'https://lolm.qq.com/act/a20220818raider/index.html'
-const ROLE_TABS = { baron: '上单', jungle: '打野', mid: '中路', dragon: '下路', support: '辅助' }
-
-function num(txt) { return Number(String(txt).replace(/[^0-9.]/g, '')) }
-
-async function scrapeRole(page, label) {
-  await page.getByRole('button', { name: label }).click()
-  await page.waitForSelector('tbody tr')
-  const rows = await page.$$eval('tbody tr', trs => trs.map(tr => {
-    const tds = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
-    // Columns usually: rank | lane | champion | win% | pick% | ban%
-    const champion = tds[2]
-    const win = Number((tds[3]||'').replace(/[^0-9.]/g, ''))
-    const pick = Number((tds[4]||'').replace(/[^0-9.]/g, ''))
-    const ban = Number((tds[5]||'').replace(/[^0-9.]/g, ''))
-    return { champion, winrate: win, pickrate: pick, banrate: ban }
-  }).filter(r => r.champion && Number.isFinite(r.winrate)))
-  rows.sort((a,b) => b.winrate - a.winrate)
-  return rows.slice(0,5)
-}
-
-;(async () => {
-  const browser = await chromium.launch()
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
-  await page.goto(PAGE, { waitUntil: 'domcontentloaded' })
-  try { await page.getByRole('button', { name: '钻石以上' }).click({ timeout: 2000 }) } catch {}
-  const roles = {}
-  for (const [key, label] of Object.entries(ROLE_TABS)) {
-    roles[key] = await scrapeRole(page, label)
-  }
-  const payload = { last_updated: new Date().toISOString(), source: 'tencent_cn_diamond_plus', roles }
-  await import('node:fs/promises').then(fs => fs.writeFile('top5.json', JSON.stringify(payload, null, 2)))
-  await browser.close()
-})()
-</pre>
-    <ol start="2">
-      <li>Add GitHub Actions workflow <code>.github/workflows/update_top5.yml</code>:</li>
-    </ol>
-    <pre>name: Update WR Top5
-on:
-  schedule:
-    - cron: '0 8 * * *'
-  workflow_dispatch: {}
-permissions:
-  contents: write
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm i -D playwright@1.x
-      - run: npx playwright install --with-deps chromium
-      - run: node build_top5.mjs
-      - name: Commit JSON
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@users.noreply.github.com
-          git add top5.json
-          git commit -m "chore: update top5.json" || echo "No changes"
-          git push
-</pre>
-    <ol start="3">
-      <li>Enable GitHub Pages (Settings → Pages → Deploy from branch → <em>main</em> / root). The app will load <code>./top5.json</code> automatically.</li>
-    </ol>
-    <p>Alternative: deploy a Cloudflare Worker that fetches the same page and stores <code>top5.json</code> in KV on a CRON; then point the Data URL to that endpoint.</p>
-  </details>
+  <main id="content" class="p-6 space-y-8"></main>
+  <footer class="bg-gray-800 p-4 text-center text-xs text-gray-400">
+    Data sourced from Riot/Tencent's official CN Diamond+ stats【813732088290812†screenshot】. Updated as of 16 Aug 2025.
   </footer>
-
   <script>
-  // ===== Config & helpers ======================================================
-  const CONFIG = {
-    // If left blank, we use the built-in DEMO_DATA below.
-    DATA_URL: './top5.json', // e.g., 'https://your-worker.workers.dev/wr/top5.json'
-    DDRAGON_VERSION: '15.16.1', // used for icons; LoL PC assets mostly match WR champion names
-  };
-
-  const ROLE_LABELS = {
-    baron: 'Baron (Top)',
-    jungle: 'Jungle',
-    mid: 'Mid',
-    dragon: 'Dragon Lane',
-    support: 'Support',
-  };
-
-  // Map Wild Rift champion display names to Data Dragon icon keys.
-  const ICON_KEY = Object.assign(Object.create(null), {
-    "Aurelion Sol": "AurelionSol",
-    "Cho'Gath": "Chogath",
-    "Dr. Mundo": "DrMundo",
-    "Jarvan IV": "JarvanIV",
-    "Kai'Sa": "Kaisa",
-    "Kha'Zix": "Khazix",
-    "Kog'Maw": "KogMaw",
-    "Lee Sin": "LeeSin",
-    "Master Yi": "MasterYi",
-    "Miss Fortune": "MissFortune",
-    "Monkey King": "MonkeyKing",
-    "Nunu & Willump": "Nunu",
-    "Rek'Sai": "RekSai",
-    "Renata Glasc": "Renata",
-    "Tahm Kench": "TahmKench",
-    "Twisted Fate": "TwistedFate",
-    "Vel'Koz": "Velkoz",
-    "Xin Zhao": "XinZhao",
-    "Wukong": "MonkeyKing",
-  });
-
-  function iconUrl(name) {
-    const key = ICON_KEY[name] || name.replace(/[^A-Za-z]/g, '');
-    return `https://ddragon.leagueoflegends.com/cdn/${CONFIG.DDRAGON_VERSION}/img/champion/${key}.png`;
-  }
-  function portraitUrl(name){
-    const key = ICON_KEY[name] || name.replace(/[^A-Za-z]/g, '');
-    return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${key}_0.jpg`;
-  }/img/champion/${key}.png`;
-  }
-
-  function fmtPct(n) { return (Number(n).toFixed(2) + '%'); }
-
-  function setModeLabel(isLive) {
-    const el = document.getElementById('data-mode');
-    el.classList.toggle('ok', !!isLive);
-    document.getElementById('mode-label').textContent = isLive ? 'live' : 'demo';
-  }
-
-  function setUpdatedLabel(iso) {
-    const d = iso ? new Date(iso) : null;
-    const nice = d ? d.toISOString().replace('T',' ').replace('Z',' UTC') : '—';
-    document.getElementById('updated-label').textContent = nice;
-    const p = document.getElementById('last-updated');
-    p.classList.toggle('ok', !!iso);
-  }
-
-  // ===== Demo data (static) ====================================================
-  const DEMO_DATA = {
-    last_updated: new Date().toISOString(),
-    source: 'tencent_cn_diamond_plus',
-    roles: {
-      baron: [
-        { champion: 'Kayle', winrate: 54.90, pickrate: 10.75, banrate: 17.11 },
-        { champion: 'Teemo', winrate: 52.84, pickrate: 5.69, banrate: 21.20 },
-        { champion: 'Tristana', winrate: 52.65, pickrate: 1.05, banrate: 0.20 },
-        { champion: 'Kennen', winrate: 52.28, pickrate: 1.48, banrate: 0.43 },
-        { champion: 'Rumble', winrate: 52.20, pickrate: 4.64, banrate: 2.29 },
-      ],
-      jungle: [
-        { champion: 'Rammus', winrate: 56.66, pickrate: 9.08, banrate: 33.82 },
-        { champion: 'Amumu', winrate: 54.34, pickrate: 4.31, banrate: 0.45 },
-        { champion: 'Morgana', winrate: 52.86, pickrate: 1.70, banrate: 30.06 },
-        { champion: 'Yone', winrate: 52.46, pickrate: 2.63, banrate: 21.44 },
-        { champion: 'Fiddlesticks', winrate: 52.32, pickrate: 3.05, banrate: 1.20 },
-      ],
-      mid: [
-        { champion: 'Kayle', winrate: 53.77, pickrate: 2.53, banrate: 17.11 },
-        { champion: 'Morgana', winrate: 53.53, pickrate: 7.28, banrate: 30.06 },
-        { champion: 'Kennen', winrate: 52.81, pickrate: 1.50, banrate: 0.43 },
-        { champion: 'Teemo', winrate: 52.71, pickrate: 2.62, banrate: 21.20 },
-        { champion: 'Zyra', winrate: 52.26, pickrate: 3.36, banrate: 44.53 },
-      ],
-      dragon: [
-        { champion: 'Varus', winrate: 54.54, pickrate: 22.98, banrate: 13.83 },
-        { champion: 'Ashe', winrate: 52.77, pickrate: 7.87, banrate: 0.20 },
-        { champion: 'Miss Fortune', winrate: 51.31, pickrate: 21.57, banrate: 4.49 },
-        { champion: 'Jhin', winrate: 50.56, pickrate: 10.40, banrate: 0.29 },
-        { champion: 'Caitlyn', winrate: 50.45, pickrate: 25.10, banrate: 3.17 },
-      ],
-      support: [
-        { champion: 'Zilean', winrate: 54.34, pickrate: 3.85, banrate: 42.61 },
-        { champion: 'Blitzcrank', winrate: 53.04, pickrate: 11.81, banrate: 6.35 },
-        { champion: 'Karma', winrate: 52.22, pickrate: 6.39, banrate: 0.68 },
-        { champion: 'Janna', winrate: 51.76, pickrate: 2.01, banrate: 0.16 },
-        { champion: 'Sona', winrate: 51.51, pickrate: 3.21, banrate: 0.14 },
-      ],
-    }
-  };
-
-  // ===== Rendering =============================================================
-  const tabsEl = document.getElementById('tabs');
-  const gridEl = document.getElementById('grid');
-  const dataUrlInput = document.getElementById('data-url');
-
-  let currentRole = 'baron';
-  let state = { roles: DEMO_DATA.roles, last_updated: DEMO_DATA.last_updated, live: false };
-
-  function renderTabs() {
-    tabsEl.innerHTML = '';
-    Object.entries(ROLE_LABELS).forEach(([key, label]) => {
-      const b = document.createElement('button');
-      b.className = 'tab' + (currentRole === key ? ' active' : '');
-      b.textContent = label;
-      b.onclick = () => { currentRole = key; renderTabs(); renderGrid(); }
-      tabsEl.appendChild(b);
-    });
-  }
-
-  function renderGrid() {
-    const rows = (state.roles && state.roles[currentRole]) ? state.roles[currentRole] : [];
-    gridEl.innerHTML = '';
-
-    if (!rows.length) {
-      const empty = document.createElement('div');
-      empty.className = 'panel';
-      empty.innerHTML = '<div class="subtle">No data for this role.</div>';
-      gridEl.appendChild(empty);
-      return;
-    }
-
-    rows.forEach((row, idx) => {
-      const win = Number(row.winrate||0);
-      const pick = Number(row.pickrate||0);
-      const ban = Number(row.banrate||0);
-      const card = document.createElement('article');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="rank ${idx===0?'crown':''}">#${idx+1}</div>
-        <figure class="art">
-          <img class="bg" alt="${row.champion} splash" loading="lazy" src="${portraitUrl(row.champion)}" onerror="this.style.display='none'">
-          <img class="fg" alt="${row.champion} icon" loading="lazy" src="${iconUrl(row.champion)}" onerror="this.remove()">
-        </figure>
-        <div class="champ">
-          <div>
-            <div class="name">${row.champion}</div>
-            <span class="tag">${ROLE_LABELS[currentRole]}</span>
-          </div>
-        </div>
-        <div class="metrics">
-          <div class="metricrow"><span class="label">Win rate</span><span class="badge ${win>=50?'good':'bad'}">${fmtPct(win)}</span><div class="progress" aria-label="Win rate bar"><i style="transform:scaleX(${Math.max(0,Math.min(100,win))/100})"></i></div></div>
-          <div class="metricrow"><span class="label">Pick rate</span><span class="badge">${fmtPct(pick)}</span><div class="progress" aria-label="Pick rate bar"><i style="transform:scaleX(${Math.max(0,Math.min(100,pick))/100})"></i></div></div>
-          <div class="metricrow"><span class="label">Ban rate</span><span class="badge">${fmtPct(ban)}</span><div class="progress" aria-label="Ban rate bar"><i style="transform:scaleX(${Math.max(0,Math.min(100,ban))/100})"></i></div></div>
-        </div>`;
-      gridEl.appendChild(card);
-    });
-  }
-
-  // ===== Data loading ==========================================================
-  const ROLE_SYNONYMS = new Map([
-    ['baron','baron'], ['top','baron'], ['solo','baron'], ['上单','baron'],
-    ['jungle','jungle'], ['jg','jungle'], ['打野','jungle'],
-    ['mid','mid'], ['middle','mid'], ['中路','mid'],
-    ['dragon','dragon'], ['bot','dragon'], ['adc','dragon'], ['下路','dragon'],
-    ['support','support'], ['sup','support'], ['辅助','support']
-  ]);
-  function toPct(v){
-    if (v==null) return 0;
-    const n = Number(String(v).replace(/%/g,'').trim());
-    if (!Number.isFinite(n)) return 0;
-    return n>1.5 ? n : n*100;
-  }
-  function normalize(json){
-    const roles = { baron: [], jungle: [], mid: [], dragon: [], support: [] };
-    if (!json) return roles;
-    // Case 1: { roles: { baron:[...], ... } }
-    const src = json.roles && typeof json.roles==='object' ? json.roles : json;
-    if (!Array.isArray(src) && typeof src==='object'){
-      for (const [k,v] of Object.entries(src)){
-        const key = ROLE_SYNONYMS.get(String(k).toLowerCase());
-        if (!key || !Array.isArray(v)) continue;
-        v.forEach((r)=>{
-          const name = r.champion || r.name || r.hero || r.heroName;
-          if (!name) return;
-          roles[key].push({
-            champion: String(name),
-            winrate: toPct(r.winrate ?? r.winRate),
-            pickrate: toPct(r.pickrate ?? r.pickRate),
-            banrate: toPct(r.banrate ?? r.banRate)
-          });
-        });
-      }
-      return roles;
-    }
-    // Case 2: flat array with role field
-    if (Array.isArray(json)){
-      json.forEach((r)=>{
-        const roleRaw = String(r.role || r.lane || r.position || '').toLowerCase();
-        const key = ROLE_SYNONYMS.get(roleRaw);
-        if (!key) return;
-        const name = r.champion || r.name || r.hero || r.heroName;
-        if (!name) return;
-        roles[key].push({
-          champion: String(name),
-          winrate: toPct(r.winrate ?? r.winRate),
-          pickrate: toPct(r.pickrate ?? r.pickRate),
-          banrate: toPct(r.banrate ?? r.banRate)
-        });
-      });
-      return roles;
-    }
-    return roles;
-  }
-
-  async function load(url) {
-    let usedDemo = !url;
-    if (!url) {
-      state = { roles: DEMO_DATA.roles, last_updated: DEMO_DATA.last_updated, live: false };
-    }
-    try {
-      if (url) {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        const roles = normalize(json);
-        const hasData = Object.values(roles).some(arr => Array.isArray(arr) && arr.length);
-        state = { roles: hasData ? roles : DEMO_DATA.roles, last_updated: json.last_updated || null, live: true };
-        usedDemo = !hasData;
-      }
-    } catch (err) {
-      console.warn('Falling back to demo data:', err);
-      state = { roles: DEMO_DATA.roles, last_updated: DEMO_DATA.last_updated, live: false };
-      usedDemo = true;
-    }
-
-    setModeLabel(!usedDemo);
-    setUpdatedLabel(state.last_updated);
-    renderTabs();
-    renderGrid();
-  }
-
-  // Wire up UI
-  document.getElementById('btn-load').addEventListener('click', () => {
-    load((dataUrlInput.value || CONFIG.DATA_URL || '').trim());
-  });
-  const fileInput = document.getElementById('file-input');
-  if (fileInput) {
-    fileInput.addEventListener('change', async (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
+    /**
+     * Fetches the JSON data containing top 5 champion stats per role and renders tables.
+     */
+    async function loadTierData() {
+      const content = document.getElementById('content');
+      content.textContent = 'Loading tier data...';
       try {
-        const text = await f.text();
-        const json = JSON.parse(text);
-        const roles = normalize(json);
-        const hasData = Object.values(roles).some(arr => Array.isArray(arr) && arr.length);
-        if (!hasData) throw new Error('No roles found in JSON');
-        state = { roles, last_updated: json.last_updated || new Date().toISOString(), live: true };
-        setModeLabel(true);
-        setUpdatedLabel(state.last_updated);
-        renderTabs();
-        renderGrid();
+        const response = await fetch('./top5.json');
+        if (!response.ok) throw new Error('Failed to load data');
+        const data = await response.json();
+        content.textContent = '';
+        const roles = {
+          baron: 'Baron Lane',
+          jungle: 'Jungle',
+          mid: 'Mid Lane',
+          dragon: 'Dragon Lane',
+          support: 'Support'
+        };
+        Object.entries(roles).forEach(([key, title]) => {
+          const section = document.createElement('section');
+          section.className = 'bg-gray-800 rounded-lg shadow-md overflow-hidden';
+          const header = document.createElement('div');
+          header.className = 'bg-gray-700 px-4 py-2';
+          header.innerHTML = `<h2 class="text-xl font-semibold">${title}</h2>`;
+          section.appendChild(header);
+          const table = document.createElement('table');
+          table.className = 'min-w-full text-left';
+          const thead = document.createElement('thead');
+          thead.innerHTML = `<tr class="bg-gray-700 text-gray-300 uppercase text-sm">
+              <th class="px-4 py-2">#</th>
+              <th class="px-4 py-2">Champion</th>
+              <th class="px-4 py-2">Win Rate</th>
+              <th class="px-4 py-2">Pick Rate</th>
+              <th class="px-4 py-2">Ban Rate</th>
+            </tr>`;
+          table.appendChild(thead);
+          const tbody = document.createElement('tbody');
+          (data.roles[key] || []).forEach((champ, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = idx % 2 === 0 ? 'bg-gray-800' : 'bg-gray-700';
+            tr.innerHTML = `
+              <td class="px-4 py-2 font-bold">${idx + 1}</td>
+              <td class="px-4 py-2">${champ.name}</td>
+              <td class="px-4 py-2">${(champ.winrate * 100).toFixed(2)}%</td>
+              <td class="px-4 py-2">${(champ.pickrate * 100).toFixed(2)}%</td>
+              <td class="px-4 py-2">${(champ.banrate * 100).toFixed(2)}%</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          section.appendChild(table);
+          content.appendChild(section);
+        });
       } catch (err) {
-        console.error(err);
-        alert('Invalid JSON file. Expected schema with roles → arrays of champions.');
+        content.textContent = 'Error loading data: ' + err.message;
       }
-    });
-  }
-
-  // Boot
-  (function init() {
-    // Start in offline-safe mode using embedded data.
-    renderTabs();
-    renderGrid();
-    setModeLabel(false);
-    setUpdatedLabel(state.last_updated);
-  })();
+    }
+    loadTierData();
   </script>
 </body>
 </html>
