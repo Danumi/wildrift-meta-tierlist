@@ -126,8 +126,7 @@
     <div class="logo"><span class="dot"></span> WR Meta Tierlist <span class="subtle">• Daily Top 5 per Role</span></div>
     <span id="last-updated" class="pill" title="Timestamp from the data file (UTC)."><span class="led"></span><span>Updated: <strong id="updated-label">—</strong></span></span>
   </header>
-
-  
+  <div id="error" class="panel" style="margin: 0 18px 8px; display:none; border-color:#a33; background:linear-gradient(180deg, rgba(255,99,99,.08), rgba(0,0,0,0)); color:#ffb4b4;"></div>
   <nav class="tabs" id="tabs"></nav>
   <div class="rolebar">
     <span class="subtle">Sort by</span>
@@ -214,55 +213,12 @@
     p.classList.toggle('ok', !!iso);
   }
 
-  // ===== Demo data (static) ====================================================
-  const DEMO_DATA = {
-    last_updated: new Date().toISOString(),
-    source: 'tencent_cn_diamond_plus',
-    roles: {
-      baron: [
-        { champion: 'Kayle', winrate: 54.90, pickrate: 10.75, banrate: 17.11 },
-        { champion: 'Teemo', winrate: 52.84, pickrate: 5.69, banrate: 21.20 },
-        { champion: 'Tristana', winrate: 52.65, pickrate: 1.05, banrate: 0.20 },
-        { champion: 'Kennen', winrate: 52.28, pickrate: 1.48, banrate: 0.43 },
-        { champion: 'Rumble', winrate: 52.20, pickrate: 4.64, banrate: 2.29 },
-      ],
-      jungle: [
-        { champion: 'Rammus', winrate: 56.66, pickrate: 9.08, banrate: 33.82 },
-        { champion: 'Amumu', winrate: 54.34, pickrate: 4.31, banrate: 0.45 },
-        { champion: 'Morgana', winrate: 52.86, pickrate: 1.70, banrate: 30.06 },
-        { champion: 'Yone', winrate: 52.46, pickrate: 2.63, banrate: 21.44 },
-        { champion: 'Fiddlesticks', winrate: 52.32, pickrate: 3.05, banrate: 1.20 },
-      ],
-      mid: [
-        { champion: 'Kayle', winrate: 53.77, pickrate: 2.53, banrate: 17.11 },
-        { champion: 'Morgana', winrate: 53.53, pickrate: 7.28, banrate: 30.06 },
-        { champion: 'Kennen', winrate: 52.81, pickrate: 1.50, banrate: 0.43 },
-        { champion: 'Teemo', winrate: 52.71, pickrate: 2.62, banrate: 21.20 },
-        { champion: 'Zyra', winrate: 52.26, pickrate: 3.36, banrate: 44.53 },
-      ],
-      dragon: [
-        { champion: 'Varus', winrate: 54.54, pickrate: 22.98, banrate: 13.83 },
-        { champion: 'Ashe', winrate: 52.77, pickrate: 7.87, banrate: 0.20 },
-        { champion: 'Miss Fortune', winrate: 51.31, pickrate: 21.57, banrate: 4.49 },
-        { champion: 'Jhin', winrate: 50.56, pickrate: 10.40, banrate: 0.29 },
-        { champion: 'Caitlyn', winrate: 50.45, pickrate: 25.10, banrate: 3.17 },
-      ],
-      support: [
-        { champion: 'Zilean', winrate: 54.34, pickrate: 3.85, banrate: 42.61 },
-        { champion: 'Blitzcrank', winrate: 53.04, pickrate: 11.81, banrate: 6.35 },
-        { champion: 'Karma', winrate: 52.22, pickrate: 6.39, banrate: 0.68 },
-        { champion: 'Janna', winrate: 51.76, pickrate: 2.01, banrate: 0.16 },
-        { champion: 'Sona', winrate: 51.51, pickrate: 3.21, banrate: 0.14 },
-      ],
-    }
-  };
-
   // ===== Rendering =============================================================
   const tabsEl = document.getElementById('tabs');
   const gridEl = document.getElementById('grid');
 
   let currentRole = 'baron';
-  let state = { roles: DEMO_DATA.roles, last_updated: DEMO_DATA.last_updated, live: false };
+  let state = { roles: {}, last_updated: null, live: false };
   let sortBy = localStorage.getItem('wr_sort') || 'winrate';
   let viewMode = localStorage.getItem('wr_view') || 'cinematic';
 
@@ -376,28 +332,37 @@
     return roles;
   }
 
+  function showError(msg){
+    const el = document.getElementById('error');
+    if (!el) return;
+    el.style.display = 'block';
+    el.textContent = 'Error: ' + msg + ' — ensure top5.json is reachable and valid JSON.';
+  }
+  function clearError(){ const el = document.getElementById('error'); if (el) el.style.display='none'; }
+
   async function load(url) {
-    let usedDemo = !url;
+    clearError();
     if (!url) {
-      state = { roles: DEMO_DATA.roles, last_updated: DEMO_DATA.last_updated, live: false };
+      showError('No data URL configured.');
+      state = { roles:{}, last_updated:null, live:false };
+      setModeLabel(false); setUpdatedLabel(null);
+      renderTabs(); renderGrid();
+      return;
     }
     try {
-      if (url) {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        const roles = normalize(json);
-        const hasData = Object.values(roles).some(arr => Array.isArray(arr) && arr.length);
-        state = { roles: hasData ? roles : DEMO_DATA.roles, last_updated: json.last_updated || null, live: true };
-        usedDemo = !hasData;
-      }
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + (res.statusText||''));
+      const json = await res.json();
+      const roles = normalize(json);
+      const hasData = Object.values(roles).some(arr => Array.isArray(arr) && arr.length);
+      if (!hasData) throw new Error('No role arrays found in JSON payload.');
+      state = { roles, last_updated: json.last_updated || null, live: true };
     } catch (err) {
-      console.warn('Falling back to demo data:', err);
-      state = { roles: DEMO_DATA.roles, last_updated: DEMO_DATA.last_updated, live: false };
-      usedDemo = true;
+      showError(err && err.message ? err.message : String(err));
+      state = { roles: {}, last_updated: null, live: false };
     }
 
-    setModeLabel(!usedDemo);
+    setModeLabel(state.live);
     setUpdatedLabel(state.last_updated);
     renderTabs();
     renderGrid();
