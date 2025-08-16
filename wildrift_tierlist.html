@@ -74,16 +74,11 @@
     .link { color: var(--accent); text-decoration: none; }
       /* --- NEW: richer, dynamic UI --- */
     .rolebar { padding: 8px 18px; display:flex; gap:10px; align-items:center; }
-    .rolebar .hint { color: var(--muted); font-size:.85rem; margin-left:auto; }
 
     /* segmented control */
     .seg { display:inline-flex; border:1px solid var(--ring); border-radius:999px; overflow:hidden; background:#0f1620; }
     .seg button{ appearance:none; background:transparent; color:var(--muted); border:0; padding:6px 10px; cursor:pointer; font-weight:650; }
     .seg button.active{ color:var(--text); background:#152130; }
-
-    /* view variants */
-    .card.compact .art{ height:96px; }
-    .card.compact .metrics{ grid-template-columns: repeat(3, minmax(0,1fr)); }
 
     /* subtle entrance animation */
     @keyframes fadeUp{ from{ opacity:0; transform: translateY(6px);} to{ opacity:1; transform:none;} }
@@ -111,32 +106,31 @@
     .badge.bad { color: var(--bad); background: rgba(255,107,107,.08); }
     .progress { position:relative; height:8px; flex:1; border-radius:999px; background:#0f1620; border:1px solid var(--ring); overflow:hidden; }
     .progress > i { position:absolute; inset:0; transform-origin:left; background: linear-gradient(90deg, var(--accent), #8bd8ff); }
+
+    /* LIST VIEW (compact vertical list) */
+    .grid.list { grid-template-columns: 1fr; gap:8px; }
+    .card.list { display:grid; grid-template-columns: 64px 1fr auto; align-items:center; border-radius:12px; }
+    .card.list .rank { position: static; margin-left:8px; order: -1; }
+    .card.list .art { height:64px; border:0; }
+    .card.list .art .bg { display:none; }
+    .card.list .art .fg { position: static; width:48px; height:48px; margin:8px; border-radius:10px; }
+    .card.list .champ { padding: 8px 8px; }
+    .card.list .metrics { padding:8px; display:flex; gap:8px; }
+    .card.list .metricrow { gap:8px; }
+    .card.list .metricrow .label, .card.list .metricrow .progress { display:none; }
+    .card.list .badge { min-width:72px; text-align:center; }
   </style>
 </head>
 <body>
   <header>
     <div class="logo"><span class="dot"></span> WR Meta Tierlist <span class="subtle">• Daily Top 5 per Role</span></div>
-    <span id="data-mode" class="pill" title="Shows whether we're using a live feed or the built‑in demo dataset."><span class="led"></span><span>Mode: <strong id="mode-label">demo</strong></span></span>
     <span id="last-updated" class="pill" title="Timestamp from the data file (UTC)."><span class="led"></span><span>Updated: <strong id="updated-label">—</strong></span></span>
   </header>
 
-  <section class="controls">
-    <div class="row">
-      <div class="panel" style="flex:1; min-width: 260px;">
-        <div class="subtle" style="margin-bottom:6px;">Data URL (JSON) — leave empty to use built‑in data</div>
-        <input id="data-url" type="url" placeholder="e.g. https://your-worker.example.com/wr/top5.json" autocomplete="url" />
-      </div>
-      <button id="btn-load" class="panel" style="white-space: nowrap;">Load / Refresh</button>
-      <label class="panel" style="white-space: nowrap; cursor:pointer;">
-        <input id="file-input" type="file" accept="application/json" hidden />
-        Load JSON file
-      </label>
-    </div>
-  </section>
-
+  
   <nav class="tabs" id="tabs"></nav>
   <div class="rolebar">
-    <span class="subtle">Top 5 by</span>
+    <span class="subtle">Sort by</span>
     <select id="sort-by" class="pill" style="background:#0e141b; border-radius:10px; padding:6px 10px;">
       <option value="winrate">Win rate</option>
       <option value="pickrate">Pick rate</option>
@@ -144,204 +138,14 @@
     </select>
     <div class="seg" id="view-mode" role="group" aria-label="View mode">
       <button data-view="cinematic" class="active" title="Big splash art view">Cinematic</button>
-      <button data-view="compact" title="Compact list view">Compact</button>
+      <button data-view="list" title="Compact vertical list">List</button>
     </div>
+  </div>
     <span class="hint">Hover cards for details</span>
   </div>
   <main class="grid" id="grid" aria-live="polite"></main>
 
-  <footer>
-    <div>Source: configurable. Demo data below is static. Hook up a daily JSON feed for live stats. See <em>“How to power this with daily real data”</em> for a drop‑in backend.</div>
-    <details>
-      <summary><strong>How to power this with daily real data (drop‑in backend)</strong></summary>
-      <p>
-        <strong>TL;DR:</strong> Set up a tiny scheduled backend that fetches the official CN Diamond+ role stats and emits a normalized JSON. Point the "Data URL" above to that JSON.
-      </p>
-      <ol>
-        <li>
-          <strong>Cloudflare Worker (serverless, free tier)</strong>
-          <ul>
-            <li>Create a Worker with a <code>CRON</code> trigger (e.g., daily at 08:00 UTC).</li>
-            <li>On each run, fetch the official CN per‑role stats endpoints (documented by the community) and compute the top 5 by win rate for each role.</li>
-            <li>Store the JSON in KV/R2 and serve it at <code>/wr/top5.json</code> with CORS enabled.</li>
-          </ul>
-        </li>
-        <li>
-          <strong>Alternative (no known JSON endpoints?): GitHub Actions + Playwright</strong>
-          <ul>
-            <li>Use a daily workflow to render the official CN stats page, scrape the table for each role, and write <code>top5.json</code> to a <em>public</em> branch (e.g., on GitHub Pages). This avoids CORS headaches—pages.github.io allows cross‑origin fetch of static JSON.</li>
-          </ul>
-        </li>
-      </ol>
-      <p>Expected JSON shape (what this page consumes):</p>
-      <pre>{
-  "last_updated": "2025-08-16T08:00:00Z",
-  "source": "tencent_cn_diamond_plus",
-  "roles": {
-    "baron": [ {"champion":"Fiora","winrate":55.4,"pickrate":11.7,"banrate":12.1}, ... 5 ],
-    "jungle": [ ... 5 ],
-    "mid": [ ... 5 ],
-    "dragon": [ ... 5 ],
-    "support": [ ... 5 ]
-  }
-}</pre>
-      <p>Minimal Cloudflare Worker (TypeScript) you can paste and deploy:</p>
-      <pre>// wr-meta-worker.ts — fetches official CN stats and normalizes to top5.json
-// 1) Fill in the per-lane endpoints below (community-documented Tencent endpoints).
-// 2) Bind a KV namespace named META (Workers &gt; Settings &gt; Variables &gt; KV).
-// 3) Add a Cron trigger: 0 8 * * * (daily 08:00 UTC).
-
-export interface RoleRow { champion: string; winrate: number; pickrate?: number; banrate?: number }
-
-const ENDPOINTS: Record<string, string> = {
-  // TODO: replace with the real endpoints (see README).
-  // Example pattern (placeholder):
-  // baron:   'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=top',
-  // jungle:  'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=jungle',
-  // mid:     'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=mid',
-  // dragon:  'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=dragon',
-  // support: 'https://lolm.qq.com/act/a20220818raider/api/role?rank=diamond&lane=support',
-};
-
-async function fetchRole(url: string): Promise<RoleRow[]> {
-  const r = await fetch(url, { headers: { 'User-Agent': 'wr-meta-bot/1.0' }});
-  if (!r.ok) throw new Error(`fetch failed ${r.status}`);
-  const text = await r.text();
-  // Many Tencent pages respond with JSON; if HTML, parse for embedded JSON.
-  try { return transformFromApi(JSON.parse(text)); } catch {
-    return transformFromHtml(text);
-  }
-}
-
-function transformFromApi(data: any): RoleRow[] {
-  // Normalize from {list:[{heroName, winRate, pickRate, banRate, ...}, ...]}
-  const list = data.list || data.data || data.rows || [];
-  return list.map((x: any) => ({
-    champion: (x.heroName || x.name || x.hero || '').trim(),
-    winrate: Number(x.winRate ?? x.winrate ?? x.win_rate),
-    pickrate: Number(x.pickRate ?? x.pickrate ?? x.pick_rate ?? 0),
-    banrate: Number(x.banRate ?? x.banrate ?? x.ban_rate ?? 0),
-  })).filter(x => x.champion && Number.isFinite(x.winrate));
-}
-
-function transformFromHtml(html: string): RoleRow[] {
-  // very lightweight extraction: find JSON blob in the page
-  const m = html.match(/(\{\s*\"list\"\s*:\s*\[.*?\])/s);
-  if (m) {
-    try { return transformFromApi(JSON.parse(m[1] + '}')); } catch {}
-  }
-  // Fallback: scrape table rows (depends on current DOM)
-  const rows: RoleRow[] = [];
-  const rowRe = /<tr[^>]*>\s*<td[^>]*>(\d+)<\/td>\s*<td[^>]*>(.*?)<\/td>\s*<td[^>]*>(\d+(?:\.\d+)?)%<\/td>\s*<td[^>]*>(\d+(?:\.\d+)?)%<\/td>\s*<td[^>]*>(\d+(?:\.\d+)?)%<\/td>/g;
-  let m2;
-  while ((m2 = rowRe.exec(html))) {
-    rows.push({ champion: m2[2].replace(/<[^>]+>/g,'').trim(), winrate: Number(m2[3]), pickrate: Number(m2[4]), banrate: Number(m2[5]) });
-  }
-  return rows;
-}
-
-export default {
-  async scheduled(event: ScheduledEvent, env: any, ctx: ExecutionContext) {
-    const roles = Object.keys(ENDPOINTS);
-    const out: Record<string, RoleRow[]> = {};
-    for (const role of roles) {
-      const rows = (await fetchRole(ENDPOINTS[role]))
-        .sort((a,b) => b.winrate - a.winrate)
-        .slice(0,5);
-      out[role] = rows;
-    }
-    const payload = JSON.stringify({ last_updated: new Date().toISOString(), source: 'tencent_cn_diamond_plus', roles: out });
-    await env.META.put('top5.json', payload, { metadata: { contentType: 'application/json' }});
-  },
-  async fetch(req: Request, env: any) {
-    // Serve the latest JSON with CORS.
-    const json = await env.META.get('top5.json');
-    return new Response(json ?? '{}', { headers: { 'content-type':'application/json', 'access-control-allow-origin': '*' }});
-  }
-} as ExportedHandler;
-</pre>
-      <p>
-        Once deployed, paste the Worker URL (e.g., <code>https://your-worker.workers.dev</code>) into the <em>Data URL</em> box above and hit <em>Load</em>.
-      </p>
-    </details>
-  <details>
-    <summary><strong>Make it fully functional: copy‑paste daily scraper (GitHub Actions)</strong></summary>
-    <p>This adds a daily job that saves <code>top5.json</code> next to this HTML so the app runs in live mode by default.</p>
-    <ol>
-      <li>Create a new file <code>build_top5.mjs</code> at the repo root with this content:</li>
-    </ol>
-    <pre>import { chromium } from 'playwright'
-
-const PAGE = 'https://lolm.qq.com/act/a20220818raider/index.html'
-const ROLE_TABS = { baron: '上单', jungle: '打野', mid: '中路', dragon: '下路', support: '辅助' }
-
-function num(txt) { return Number(String(txt).replace(/[^0-9.]/g, '')) }
-
-async function scrapeRole(page, label) {
-  await page.getByRole('button', { name: label }).click()
-  await page.waitForSelector('tbody tr')
-  const rows = await page.$$eval('tbody tr', trs => trs.map(tr => {
-    const tds = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
-    // Columns usually: rank | lane | champion | win% | pick% | ban%
-    const champion = tds[2]
-    const win = Number((tds[3]||'').replace(/[^0-9.]/g, ''))
-    const pick = Number((tds[4]||'').replace(/[^0-9.]/g, ''))
-    const ban = Number((tds[5]||'').replace(/[^0-9.]/g, ''))
-    return { champion, winrate: win, pickrate: pick, banrate: ban }
-  }).filter(r => r.champion && Number.isFinite(r.winrate)))
-  rows.sort((a,b) => b.winrate - a.winrate)
-  return rows.slice(0,5)
-}
-
-;(async () => {
-  const browser = await chromium.launch()
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
-  await page.goto(PAGE, { waitUntil: 'domcontentloaded' })
-  try { await page.getByRole('button', { name: '钻石以上' }).click({ timeout: 2000 }) } catch {}
-  const roles = {}
-  for (const [key, label] of Object.entries(ROLE_TABS)) {
-    roles[key] = await scrapeRole(page, label)
-  }
-  const payload = { last_updated: new Date().toISOString(), source: 'tencent_cn_diamond_plus', roles }
-  await import('node:fs/promises').then(fs => fs.writeFile('top5.json', JSON.stringify(payload, null, 2)))
-  await browser.close()
-})()
-</pre>
-    <ol start="2">
-      <li>Add GitHub Actions workflow <code>.github/workflows/update_top5.yml</code>:</li>
-    </ol>
-    <pre>name: Update WR Top5
-on:
-  schedule:
-    - cron: '0 8 * * *'
-  workflow_dispatch: {}
-permissions:
-  contents: write
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm i -D playwright@1.x
-      - run: npx playwright install --with-deps chromium
-      - run: node build_top5.mjs
-      - name: Commit JSON
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@users.noreply.github.com
-          git add top5.json
-          git commit -m "chore: update top5.json" || echo "No changes"
-          git push
-</pre>
-    <ol start="3">
-      <li>Enable GitHub Pages (Settings → Pages → Deploy from branch → <em>main</em> / root). The app will load <code>./top5.json</code> automatically.</li>
-    </ol>
-    <p>Alternative: deploy a Cloudflare Worker that fetches the same page and stores <code>top5.json</code> in KV on a CRON; then point the Data URL to that endpoint.</p>
-  </details>
-  </footer>
+  <footer></footer>
 
   <script>
   // ===== Config & helpers ======================================================
@@ -396,8 +200,10 @@ jobs:
 
   function setModeLabel(isLive) {
     const el = document.getElementById('data-mode');
+    if (!el) return; // no demo/live pill in live site
     el.classList.toggle('ok', !!isLive);
-    document.getElementById('mode-label').textContent = isLive ? 'live' : 'demo';
+    const lbl = document.getElementById('mode-label');
+    if (lbl) lbl.textContent = isLive ? 'live' : 'demo';
   }
 
   function setUpdatedLabel(iso) {
@@ -454,7 +260,6 @@ jobs:
   // ===== Rendering =============================================================
   const tabsEl = document.getElementById('tabs');
   const gridEl = document.getElementById('grid');
-  const dataUrlInput = document.getElementById('data-url');
 
   let currentRole = 'baron';
   let state = { roles: DEMO_DATA.roles, last_updated: DEMO_DATA.last_updated, live: false };
@@ -476,6 +281,8 @@ jobs:
     const rows = (state.roles && state.roles[currentRole]) ? state.roles[currentRole] : [];
     gridEl.innerHTML = '';
 
+    gridEl.classList.toggle('list', viewMode==='list');
+
     if (!rows.length) {
       const empty = document.createElement('div');
       empty.className = 'panel';
@@ -491,7 +298,7 @@ jobs:
       const pick = Number(row.pickrate||0);
       const ban = Number(row.banrate||0);
       const card = document.createElement('article');
-      card.className = 'card' + (viewMode==='compact' ? ' compact' : '');
+      card.className = 'card' + (viewMode==='list' ? ' list' : '');
       card.innerHTML = `
         <div class="rank ${idx===0?'crown':''}">#${idx+1}</div>
         <figure class="art">
@@ -597,31 +404,6 @@ jobs:
   }
 
   // Wire up UI
-  document.getElementById('btn-load').addEventListener('click', () => {
-    load((dataUrlInput.value || CONFIG.DATA_URL || '').trim());
-  });
-  const fileInput = document.getElementById('file-input');
-  if (fileInput) {
-    fileInput.addEventListener('change', async (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      try {
-        const text = await f.text();
-        const json = JSON.parse(text);
-        const roles = normalize(json);
-        const hasData = Object.values(roles).some(arr => Array.isArray(arr) && arr.length);
-        if (!hasData) throw new Error('No roles found in JSON');
-        state = { roles, last_updated: json.last_updated || new Date().toISOString(), live: true };
-        setModeLabel(true);
-        setUpdatedLabel(state.last_updated);
-        renderTabs();
-        renderGrid();
-      } catch (err) {
-        console.error(err);
-        alert('Invalid JSON file. Expected schema with roles → arrays of champions.');
-      }
-    });
-  }
   // controls
   const sortSel = document.getElementById('sort-by');
   const viewSeg = document.getElementById('view-mode');
@@ -640,11 +422,10 @@ jobs:
 
   // Boot
   (function init() {
-    // Start in offline-safe mode using embedded data.
     renderTabs();
-    renderGrid();
-    setModeLabel(false);
-    setUpdatedLabel(state.last_updated);
+    setUpdatedLabel(null);
+    // Live load from configured URL; falls back silently to internal data if it fails.
+    load(CONFIG.DATA_URL);
   })();
   </script>
 </body>
