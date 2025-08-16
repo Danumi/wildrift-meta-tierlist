@@ -1,26 +1,36 @@
-name: Update top5 Wild Rift stats
+name: Update WR Top5 (every 5 minutes)
 
 on:
   schedule:
-    - cron: '0 8 * * *'
-  workflow_dispatch:
+    - cron: "*/5 * * * *"   # every 5 minutes (UTC)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wr-top5
+  cancel-in-progress: true
 
 jobs:
-  update:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm install playwright
-      - run: npx playwright install --with-deps
+          node-version: 20
+
+      - run: npm i -D playwright@1.x
+      - run: npx playwright install --with-deps chromium
+
       - run: node build_top5.mjs
-      - name: Commit and push
+
+      - name: Commit JSON
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Actions"
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
           git add top5.json
-          timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          git commit -m "Update top5.json ($timestamp)" || echo "No changes"
+          git commit -m "chore: refresh top5.json" || echo "No changes"
           git push
